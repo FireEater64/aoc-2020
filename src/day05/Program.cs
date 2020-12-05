@@ -18,40 +18,11 @@ Console.WriteLine($"Part 2: {mine}");
 
 static int CalculateSeatId(string s)
 {
-    var chars = s.AsSpan();
-    var row = CalculateRow(chars[0..7], 0, 127);
-    var column = CalculateColumn(chars[7..10], 0, 7);
+    var row = CalculateRow(s[..7]);
+    var column = CalculateColumn(s[7..]);
     return (row * 8) + column;
 }
 
-static int CalculateRow(ReadOnlySpan<char> instructions, int front, int back)
-{
-    if (front == back) return front;
+static int CalculateRow(string s) => Convert.ToInt32(s.Replace('F', '0').Replace('B', '1'), 2);
 
-    var instruction = instructions[0];
-    var nextInstructions = instructions[1..];
-
-    return instruction switch
-    {
-        'F' => CalculateRow(nextInstructions, front, CalculateMidpoint(front, back, MidpointRounding.ToZero)),
-        'B' => CalculateRow(nextInstructions, CalculateMidpoint(front, back, MidpointRounding.AwayFromZero), back),
-        _ => throw new Exception($"Invalid instruction: {instruction}")
-    };
-}
-
-static int CalculateColumn(ReadOnlySpan<char> instructions, int left, int right)
-{
-    if (left == right) return left;
-
-    var instruction = instructions[0];
-    var nextInstructions = instructions[1..];
-
-    return instruction switch
-    {
-        'R' => CalculateColumn(nextInstructions, CalculateMidpoint(left, right, MidpointRounding.AwayFromZero), right),
-        'L' => CalculateColumn(nextInstructions, left, CalculateMidpoint(left, right, MidpointRounding.ToZero)),
-        _ => throw new Exception($"Invalid instruction: {instruction}")
-    };
-}
-
-static int CalculateMidpoint(int lower, int upper, MidpointRounding rounding) => (int) Math.Round((lower + upper) / 2m, 0, rounding);
+static int CalculateColumn(string s) => Convert.ToInt32(s.Replace('L', '0').Replace('R', '1'), 2);
