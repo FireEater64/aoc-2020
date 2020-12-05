@@ -16,13 +16,9 @@ var mine = Enumerable.Range(0, maxSeat)
 
 Console.WriteLine($"Part 2: {mine}");
 
-static int CalculateSeatId(string s)
-{
-    var row = CalculateRow(s[..7]);
-    var column = CalculateColumn(s[7..]);
-    return (row * 8) + column;
-}
-
-static int CalculateRow(string s) => Convert.ToInt32(s.Replace('F', '0').Replace('B', '1'), 2);
-
-static int CalculateColumn(string s) => Convert.ToInt32(s.Replace('L', '0').Replace('R', '1'), 2);
+static int CalculateSeatId(string s) =>
+    Convert.ToInt32(s
+        .Replace('F', '0')
+        .Replace('B', '1')
+        .Replace('L', '0')
+        .Replace('R', '1'), 2);
