@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 
 var instructions = File.ReadLines("input.txt").Select(Decode);
 var console = new GameConsole(instructions);
+var consolePermutations = GetAllPossibleConsoles(console).ToList();
 
 console.WillRunToInfiniteLoop();
-
 Console.WriteLine($"Part 1: {console.Accumulator}");
-var terminatingConsole = GetAllPossibleConsoles(new GameConsole(instructions)).ToList().First(x => !x.WillRunToInfiniteLoop());
+
+var terminatingConsole = consolePermutations.First(x => !x.WillRunToInfiniteLoop());
 Console.WriteLine($"Part 2: {terminatingConsole.Accumulator}");
 
 IEnumerable<GameConsole> GetAllPossibleConsoles(GameConsole console)
@@ -17,24 +19,23 @@ IEnumerable<GameConsole> GetAllPossibleConsoles(GameConsole console)
     for (int i = 0; i < console.Instructions.Count; i++)
     {
         yield return console;
-        var withJmp = console with
+
+        var instruction = console.Instructions[i];
+        if (instruction.Opcode == "acc")
+            continue;
+
+        var jmp = instruction with { Opcode = "jmp" };
+        var nop = instruction with { Opcode = "nop" };
+
+        yield return console with
         {
-            Instructions = new List<Instruction>(console.Instructions)
+            Instructions = console.Instructions.SetItem(i, jmp)
         };
-        withJmp.Instructions[i] = withJmp.Instructions[i] with
+
+        yield return console with
         {
-            Opcode = withJmp.Instructions[i].Opcode == "nop" ? "jmp" : withJmp.Instructions[i].Opcode
+            Instructions = console.Instructions.SetItem(i, nop)
         };
-        yield return withJmp;
-        var withNop = console with
-        {
-            Instructions = new List<Instruction>(console.Instructions)
-        };
-        withNop.Instructions[i] = withNop.Instructions[i] with
-        {
-            Opcode = withNop.Instructions[i].Opcode == "jmp" ? "nop" : withNop.Instructions[i].Opcode
-        };
-        yield return withNop;
     }
 
     yield break;
@@ -48,13 +49,13 @@ Instruction Decode(string line)
 
 record GameConsole
 {
-    public List<Instruction> Instructions { get; init; }
+    public ImmutableList<Instruction> Instructions { get; init; }
     public int ProgramCounter { get; private set; } = 0;
     public int Accumulator { get; private set; } = 0;
 
     public GameConsole(IEnumerable<Instruction> instructions)
     {
-        Instructions = new List<Instruction>(instructions);
+        Instructions = instructions.ToImmutableList();
     }
 
     public void Run()
