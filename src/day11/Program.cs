@@ -5,26 +5,19 @@ using System.Linq;
 var lines = File.ReadAllLines("input.txt");
 SeatState[,] status = LoadSeats(lines);
 
-bool changed = false;
+bool changed1, changed2;
+SeatState[,] part1 = status, part2 = status;
 do
 {
-    (status, changed) = Tick(status);
+    (part1, changed1) = Tick(part1, (s, x, y) => CountAdjacent(s, x, y), 4);
+    (part2, changed2) = Tick(part2, (s, x, y) => CountLineOfSight(s, x, y), 5);
 }
-while (changed);
+while (changed1 || changed2);
 
-Console.WriteLine($"Part 1: {CountOccupied(status)}");
+Console.WriteLine($"Part 1: {CountOccupied(part1)}");
+Console.WriteLine($"Part 2: {CountOccupied(part2)}");
 
-changed = false;
-status = LoadSeats(lines);
-do
-{
-    (status, changed) = Tick2(status);
-}
-while (changed);
-
-Console.WriteLine($"Part 2: {CountOccupied(status)}");
-
-(SeatState[,], bool) Tick(SeatState[,] given)
+static (SeatState[,], bool) Tick(SeatState[,] given, Func<SeatState[,], int, int, int> seatCounter, int tolerance)
 {
     var result = new SeatState[given.GetLength(0), given.GetLength(1)];
     var changed = false;
@@ -35,8 +28,8 @@ Console.WriteLine($"Part 2: {CountOccupied(status)}");
         result[i, j] = given[i, j] switch
         {
             SeatState.FLOOR => SeatState.FLOOR,
-            SeatState.EMPTY when CountAdjacent(given, i, j) is 0 => SeatState.OCCUPIED,
-            SeatState.OCCUPIED when CountAdjacent(given, i, j) is >= 4 => SeatState.EMPTY,
+            SeatState.EMPTY when seatCounter(given, i, j) is 0 => SeatState.OCCUPIED,
+            SeatState.OCCUPIED when seatCounter(given, i, j) >= tolerance => SeatState.EMPTY,
             SeatState.EMPTY => SeatState.EMPTY,
             SeatState.OCCUPIED => SeatState.OCCUPIED,
             _ => throw new Exception("Wut")
@@ -48,31 +41,7 @@ Console.WriteLine($"Part 2: {CountOccupied(status)}");
     return (result, changed);
 }
 
-(SeatState[,], bool) Tick2(SeatState[,] given)
-{
-    var result = new SeatState[given.GetLength(0), given.GetLength(1)];
-    var changed = false;
-
-    for (int i = 0; i < given.GetLength(0); i++)
-    for (int j = 0; j < given.GetLength(1); j++)
-    {
-        result[i, j] = given[i, j] switch
-        {
-            SeatState.FLOOR => SeatState.FLOOR,
-            SeatState.EMPTY when CountLineOfSight(given, i, j) is 0 => SeatState.OCCUPIED,
-            SeatState.OCCUPIED when CountLineOfSight(given, i, j) is >= 5 => SeatState.EMPTY,
-            SeatState.EMPTY => SeatState.EMPTY,
-            SeatState.OCCUPIED => SeatState.OCCUPIED,
-            _ => throw new Exception("Wut")
-        };
-
-        changed |= result[i, j] != (given[i, j]);
-    }
-
-    return (result, changed);
-}
-
-int CountAdjacent(SeatState[,] given, int x, int y)
+static int CountAdjacent(SeatState[,] given, int x, int y)
 {
     var count = 0;
     if (IsSeat(given, x - 1, y, SeatState.OCCUPIED)) count++;
@@ -86,21 +55,21 @@ int CountAdjacent(SeatState[,] given, int x, int y)
     return count;
 }
 
-int CountLineOfSight(SeatState[,] given, int x, int y)
+static int CountLineOfSight(SeatState[,] given, int x, int y)
 {
     var count = 0;
-    if (CanSeeSeat(given, x, y, 0, 1)) count++;
-    if (CanSeeSeat(given, x, y, 0, -1)) count++;
-    if (CanSeeSeat(given, x, y, 1, -1)) count++;
-    if (CanSeeSeat(given, x, y, 1, 0)) count++;
-    if (CanSeeSeat(given, x, y, 1, 1)) count++;
-    if (CanSeeSeat(given, x, y, -1, -1)) count++;
-    if (CanSeeSeat(given, x, y, -1, 0)) count++;
-    if (CanSeeSeat(given, x, y, -1, 1)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, 0, 1)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, 0, -1)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, 1, -1)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, 1, 0)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, 1, 1)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, -1, -1)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, -1, 0)) count++;
+    if (CanSeeOccupiedSeat(given, x, y, -1, 1)) count++;
     return count;
 }
 
-bool CanSeeSeat(SeatState[,] given, int x, int y, int xstep, int ystep)
+static bool CanSeeOccupiedSeat(SeatState[,] given, int x, int y, int xstep, int ystep)
 {
     while (x >= 0 && x < given.GetLength(0) &&
            y >= 0 && y < given.GetLength(1))
@@ -114,7 +83,7 @@ bool CanSeeSeat(SeatState[,] given, int x, int y, int xstep, int ystep)
     return false;
 }
 
-bool IsSeat(SeatState[,] given, int x, int y, SeatState status)
+static bool IsSeat(SeatState[,] given, int x, int y, SeatState status)
 {
     if (x < 0 || x >= given.GetLength(0))
         return false;
@@ -124,7 +93,7 @@ bool IsSeat(SeatState[,] given, int x, int y, SeatState status)
     return given[x, y] == status;
 }
 
-SeatState[,] LoadSeats(string[] given)
+static SeatState[,] LoadSeats(string[] given)
 {
     var result = new SeatState[given.First().Length, given.Length];
     for (int i = 0; i < given.Length; i++)
@@ -142,12 +111,12 @@ SeatState[,] LoadSeats(string[] given)
     return result;
 }
 
-int CountOccupied(SeatState[,] given)
+static int CountOccupied(SeatState[,] given)
 {
     var count = 0;
-    for (int i = 0; i < status.GetLength(0); i++)
-    for (int j = 0; j < status.GetLength(1); j++)
-        if (IsSeat(status, i, j, SeatState.OCCUPIED)) count++;
+    for (int i = 0; i < given.GetLength(0); i++)
+    for (int j = 0; j < given.GetLength(1); j++)
+        if (IsSeat(given, i, j, SeatState.OCCUPIED)) count++;
     return count;
 }
 
