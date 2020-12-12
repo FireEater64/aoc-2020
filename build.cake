@@ -1,5 +1,5 @@
 Task("Run all")
-    .DoesForEach(GetFiles("./src/**/day*.csproj"), file =>
+    .DoesForEach(GetFiles("./src/**/day*.csproj").OrderBy(x => x.ToString()), file =>
     {
         var taskName = $"{file.GetFilenameWithoutExtension()}";
 
