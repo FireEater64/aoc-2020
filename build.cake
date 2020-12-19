@@ -6,8 +6,13 @@ Task("Run all")
         Task(taskName)
             .Does(c =>
             {
-                Context.Environment.WorkingDirectory = file.GetDirectory();
-                DotNetCoreRun(file.ToString());
+                var settings = new DotNetCoreRunSettings
+                {
+                    WorkingDirectory = file.GetDirectory(),
+                    Configuration = "Release"
+                };
+
+                DotNetCoreRun(file.ToString(), null, settings);
             });
 
         RunTarget(taskName);
