@@ -42,8 +42,9 @@ string BuildRegexForRule(int id)
         case REPLACE2:
             var r1 = BuildRegexForRule(42);
             var r2 = BuildRegexForRule(31);
-            var repeats = Enumerable.Range(1, 5).Select(i => $"{string.Concat(r1.Repeat(i))}{string.Concat(r2.Repeat(i))}");
-            return $"({(string.Join('|', repeats))})";
+
+            // https://docs.microsoft.com/en-gb/archive/blogs/bclteam/net-regular-expressions-regex-and-balanced-matching-ryan-byington
+            return $"(?<count>({r1}))+(?<-count>({r2}))+(?(count)(?!))";
         case string s when s.Contains('|'):
             var or = s.Split('|', StringSplitOptions.TrimEntries);
             var left = string.Concat(or[0].Split(' ', StringSplitOptions.TrimEntries).Select(int.Parse).Select(BuildRegexForRule));
@@ -54,38 +55,5 @@ string BuildRegexForRule(int id)
             return string.Concat(and.Select(BuildRegexForRule));
         default:
             return BuildRegexForRule(int.Parse(rule));
-    }
-}
-
-IEnumerable<string> EnumerateOptionsForRule(int id)
-{
-    var rule = lookup[id];
-
-    if (rule.StartsWith('"'))
-    {
-        return new List<string> { rule.Trim('"') };
-    }
-
-    var rules = rule.Split('|', StringSplitOptions.TrimEntries);
-    var results = rules.SelectMany(piece =>
-    {
-        var referenced = piece.Split(' ').Select(int.Parse);
-        var fragments = referenced.Select(EnumerateOptionsForRule).ToList();
-        var combinations = fragments.CartesianProduct();
-        return combinations.Select(combination => string.Concat(combination));
-    });
-    return results;
-}
-
-public static class Extensions
-{
-    public static IEnumerable<IEnumerable<T>> CartesianProduct<T>(this IEnumerable<IEnumerable<T>> sequences)
-    {
-        IEnumerable<IEnumerable<T>> emptyProduct = new[] { Enumerable.Empty<T>() };
-
-        return sequences.Aggregate(emptyProduct, (accumulator, sequence) => 
-                from accseq in accumulator
-                from item in sequence
-                select accseq.Concat(new[] {item}));
     }
 }
